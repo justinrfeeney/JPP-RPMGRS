@@ -1,0 +1,4 @@
+"outcome_variable","term","estimate","std.error","statistic","p.value","model_engine","random_effect"
+"Self_Mean","ConditionGRS",13.4180328667741,2.39683946079089,5.59821927428821,2.16564729631854e-08,"glmmTMB","(1|Group)"
+"Peer_Mean","ConditionGRS",13.6791295226172,1.901232522947,7.1948745655865,6.25182124140467e-13,"glmmTMB","(1|Group)"
+"Super_Mean","ConditionGRS",2.50992366412215,2.11565869649972,1.18635565759011,0.236564818672083,"lm","None"

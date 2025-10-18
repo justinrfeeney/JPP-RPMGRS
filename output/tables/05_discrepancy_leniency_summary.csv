@@ -1,0 +1,5 @@
+"outcome_variable","condition","term","estimate","std.error","statistic","p.value","model_engine","random_effect"
+"Self_Discrep","RPM","(Intercept)",-1.75006573890508,1.93851310779757,-0.902787673637864,0.366638594386217,"glmmTMB","(1|Group)"
+"Self_Discrep","GRS","(Intercept)",10.9876743411345,3.61727089069631,3.03755916356583,0.00292686665639721,"nlme","(1|Experimenter)"
+"Peer_Discrep","RPM","(Intercept)",-3.04190684318704,1.6994822265553,-1.78990212174959,0.0734696477047891,"glmmTMB","(1|Group)"
+"Peer_Discrep","GRS","(Intercept)",8.06286830899581,1.31125017310275,6.14899313219307,7.79763549977579e-10,"glmmTMB","(1|Group)"

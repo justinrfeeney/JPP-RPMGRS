@@ -45,6 +45,7 @@ my_data_clean <- my_data_raw %>%
 
 # --- 5. Save Cleaned Data ----------------------------------------
 message("Saving cleaned data to: ", output_path)
+dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
 saveRDS(my_data_clean, file = output_path)
 
 message("Step 02: Data loading and cleaning complete. ", nrow(my_data_clean), " rows processed.")

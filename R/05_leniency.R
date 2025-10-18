@@ -8,6 +8,10 @@ load_packages(c("here", "dplyr", "tidyr", "lme4", "lmerTest", "glmmTMB", "nlme",
 
 # --- 2. Load Cleaned Data ----------------------------------------
 cleaned_data_path <- here::here("output", "cleaned_data.rds")
+if (!file.exists(cleaned_data_path)) {
+  stop("Cleaned data not found at ", cleaned_data_path,
+       ". Run Step 02 (R/02_load_clean.R) or the main pipeline (main.R) first.")
+}
 my_data <- readRDS(cleaned_data_path)
 
 # --- 3. Analysis Part 1: Elevation Leniency ----------------------
@@ -144,15 +148,19 @@ elevation_power_file <- here::here("output", "tables", "05_elevation_power_summa
 discrepancy_power_file <- here::here("output", "tables", "05_discrepancy_power_summary.csv")
 
 message("Saving elevation leniency results to: ", elevation_output_file)
+dir.create(dirname(elevation_output_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(elevation_summary, elevation_output_file, row.names = FALSE)
 
 message("Saving discrepancy leniency results to: ", discrepancy_output_file)
+dir.create(dirname(discrepancy_output_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(discrepancy_summary, discrepancy_output_file, row.names = FALSE)
 
 message("Saving elevation power results to: ", elevation_power_file)
+dir.create(dirname(elevation_power_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(elevation_power_summary, elevation_power_file, row.names = FALSE)
 
 message("Saving discrepancy power results to: ", discrepancy_power_file)
+dir.create(dirname(discrepancy_power_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(discrepancy_power_summary, discrepancy_power_file, row.names = FALSE)
 
 # Display tables to the console and viewer

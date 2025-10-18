@@ -9,6 +9,10 @@ load_packages(c("here", "dplyr", "tidyr", "lme4", "knitr"))
 
 # --- 2. Load Cleaned Data ----------------------------------------
 cleaned_data_path <- here::here("output", "cleaned_data.rds")
+if (!file.exists(cleaned_data_path)) {
+  stop("Cleaned data not found at ", cleaned_data_path,
+       ". Run Step 02 (R/02_load_clean.R) or the main pipeline (main.R) first.")
+}
 my_data <- readRDS(cleaned_data_path)
 
 # --- 3. Define Analysis Parameters -------------------------------
@@ -42,6 +46,7 @@ output_file <- here::here("output", "tables", "03_icc_summary.csv")
 message("Saving ICC results to: ", output_file)
 
 # Save the results to a CSV file
+dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(icc_results, output_file, row.names = FALSE)
 
 # Display a rounded summary in the console and viewer

@@ -1,5 +1,14 @@
 # JPP-RPMGRS: Reproducible Analysis Pipeline
 
+## Maintainers
+
+Justin R Feeney, PhD, SHRM-SCP
+Associate Professor of Management
+Department of Business Administration and Economics
+jfeeney@saintmarys.edu | 574-284-4488
+
+Written with Assistance of OpenAI's 0.46 Codex Software.
+
 This repository contains a reproducible R pipeline for comparing two rating methods across conditions (RPM vs. GRS). It covers reliability (ICC), construct validity (CFA), leniency (elevation and discrepancy), and convergent validity (correlations), and produces cleaned data and publication-ready tables.
 
 ## Contents
@@ -148,9 +157,4 @@ Rscript main.R
 
 TBD
 
-## Maintainers
 
-Justin R Feeney, PhD, SHRM-SCP
-Associate Professor of Management
-Department of Business Administration and Economics
-jfeeney@saintmarys.edu | 574-284-4488

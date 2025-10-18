@@ -23,6 +23,10 @@ library(here)
 start_time <- Sys.time()
 message("Starting analysis pipeline at: ", start_time)
 
+# Ensure output directories exist
+dir.create(here::here("output"), recursive = TRUE, showWarnings = FALSE)
+dir.create(here::here("output", "tables"), recursive = TRUE, showWarnings = FALSE)
+
 # --- 2. Execute Analysis Steps ----------------------------------- 
 
 # Each script prints messages about its progress and saves its output
