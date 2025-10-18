@@ -1,0 +1,16 @@
+.DS_Store
+.DS_Store
+.vscode/
+.idea/
+
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
