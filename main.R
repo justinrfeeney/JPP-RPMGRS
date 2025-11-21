@@ -47,11 +47,6 @@ source(here::here("R", "05_leniency.R"))
 message("\n--- STEP 06: Correlation Analysis ---")
 source(here::here("R", "06_correlations.R"))
 
-# --- 3. Conclusion ----------------------------------------------- 
-
-end_time <- Sys.time()
-time_taken <- end_time - start_time
-
 message("\n========================================================")
 message("Analysis pipeline complete!")
 message("Total execution time: ", format(time_taken))

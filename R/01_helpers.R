@@ -29,6 +29,25 @@ load_packages <- function(pkgs) {
   invisible(TRUE)
 }
 
+# ---- Warning Suppression -------------------------------------------
+
+#' Suppress known, non-critical warnings from model fitting routines.
+#'
+#' This helper muffles boundary/singularity convergence warnings that are
+#' expected in small samples but otherwise harmless for downstream use.
+suppress_known_model_warnings <- function(expr) {
+  withCallingHandlers(
+    expr,
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      if (grepl("boundary (singular) fit", msg, fixed = TRUE) ||
+        grepl("Model convergence problem; non-positive-definite Hessian matrix", msg, fixed = TRUE)) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+}
+
 
 # ---- ICC Calculation ------------------------------------------------
 
@@ -48,7 +67,12 @@ get_icc1 <- function(var, cl, df) {
   }
 
   formula <- stats::as.formula(paste0("`", var, "` ~ 1 + (1|`", cl, "`)"))
-  fm <- tryCatch(lme4::lmer(formula, data = df, REML = TRUE), error = function(e) NULL)
+  fm <- tryCatch(
+    suppress_known_model_warnings(
+      lme4::lmer(formula, data = df, REML = TRUE)
+    ),
+    error = function(e) NULL
+  )
 
   if (is.null(fm) || lme4::isSingular(fm)) return(NA_real_)
 
@@ -173,10 +197,13 @@ fit_best_model <- function(formula, data, random_effects = NULL) {
       full_formula <- stats::update(formula, paste0(". ~ . + ", re))
 
       fit_glmmTMB <- try(
-        glmmTMB::glmmTMB(
-          full_formula, data = data, family = stats::gaussian(), REML = FALSE,
-          control = glmmTMB::glmmTMBControl(optimizer = stats::optim, optArgs = list(method = "BFGS"))
-        ), silent = TRUE
+        suppress_known_model_warnings(
+          glmmTMB::glmmTMB(
+            full_formula, data = data, family = stats::gaussian(), REML = FALSE,
+            control = glmmTMB::glmmTMBControl(optimizer = stats::optim, optArgs = list(method = "BFGS"))
+          )
+        ),
+        silent = TRUE
       )
 
       if (!inherits(fit_glmmTMB, "try-error") && isTRUE(fit_glmmTMB$sdr$pdHess)) {
@@ -252,15 +279,17 @@ fit_power_model <- function(formula, data, random_effects = character(), na_acti
       re <- trimws(re)
       full_formula <- stats::as.formula(paste(formula_text, "+", re))
       attempt <- try(
-        lmer_fn(
-          full_formula,
-          data = data,
-          REML = FALSE,
-          na.action = na_action,
-          control = lme4::lmerControl(
-            optimizer = "bobyqa",
-            optCtrl = list(maxfun = 200000),
-            check.conv.singular = "ignore"
+        suppress_known_model_warnings(
+          lmer_fn(
+            full_formula,
+            data = data,
+            REML = FALSE,
+            na.action = na_action,
+            control = lme4::lmerControl(
+              optimizer = "bobyqa",
+              optCtrl = list(maxfun = 200000),
+              check.conv.singular = "ignore"
+            )
           )
         ),
         silent = TRUE
@@ -315,13 +344,6 @@ summarize_power_sim <- function(power_object, outcome, effect, model_label, rand
 }
 
 # ---- Reporting Utilities -----------------------------------------
-
-#' Display a tidy table in the console and (when available) the RStudio Viewer.
-#'
-#' @param df Data frame to display.
-#' @param title Character title printed in the console and used for the viewer tab.
-#' @param digits Number of decimal digits used to round numeric columns for display.
-#' @return Invisibly returns the rounded tibble that was displayed.
 display_table <- function(df, title, digits = 3) {
   if (!is.data.frame(df)) stop("`df` must be a data frame.")
   if (length(digits) != 1 || !is.numeric(digits)) stop("`digits` must be a single numeric value.")

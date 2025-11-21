@@ -62,12 +62,14 @@ for (pair_name in names(pairs_to_correlate)) {
     random_effects <- if (length(random_effect_candidates) > 0) random_effect_candidates[1] else NULL
 
     # Calculate the correlation
-    corr_test <- correlation::correlation(
-      data = df_cond,
-      vars = v1,
-      vars2 = v2,
-      multilevel = !is.null(random_effects),
-      random_effects = random_effects
+    corr_test <- suppress_known_model_warnings(
+      correlation::correlation(
+        data = df_cond,
+        vars = v1,
+        vars2 = v2,
+        multilevel = !is.null(random_effects),
+        random_effects = random_effects
+      )
     )
 
     # Store the results with achieved power for the correlation
