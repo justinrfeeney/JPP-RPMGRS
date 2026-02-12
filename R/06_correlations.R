@@ -7,25 +7,7 @@ source(here::here("R", "01_helpers.R"))
 load_packages(c("here", "dplyr", "tidyr", "correlation", "knitr", "pwr"))
 
 # --- 2. Load Cleaned Data ----------------------------------------
-cleaned_data_path <- here::here("output", "cleaned_data.rds")
-if (!file.exists(cleaned_data_path)) {
-  stop("Cleaned data not found at ", cleaned_data_path,
-       ". Run Step 02 (R/02_load_clean.R) or the main pipeline (main.R) first.")
-}
-my_data <- readRDS(cleaned_data_path)
-
-# --- Helper: Correlation Power ---------------------------------
-#' Estimate two-tailed power to detect a correlation at alpha = 0.05.
-#' @param r_value Observed correlation coefficient.
-#' @param n_value Sample size contributing to the correlation.
-#' @param alpha Significance level; defaults to 0.05.
-#' @return Estimated statistical power, or NA_real_ when undefined.
-compute_correlation_power <- function(r_value, n_value, alpha = 0.05) {
-  if (is.na(r_value) || is.na(n_value) || n_value <= 3) {
-    return(NA_real_)
-  }
-  pwr::pwr.r.test(n = n_value, r = r_value, sig.level = alpha, alternative = "two.sided")$power
-}
+my_data <- load_cleaned_data()
 
 # --- 3. Define Analysis Parameters -------------------------------
 
@@ -103,18 +85,18 @@ corr_wide <- correlation_summary %>%
 comparison_results <- corr_wide %>%
   dplyr::rowwise() %>%
   dplyr::mutate(
-    steiger_z = steiger_test(r_RPM, n_Obs_RPM, r_GRS, n_Obs_GRS)$Z,
-    steiger_p = steiger_test(r_RPM, n_Obs_RPM, r_GRS, n_Obs_GRS)$p,
+    steiger_result = list(steiger_test(r_RPM, n_Obs_RPM, r_GRS, n_Obs_GRS)),
+    steiger_z = steiger_result[["Z"]],
+    steiger_p = steiger_result[["p"]],
     z_crit = qnorm(1 - 0.05 / 2),
     power_diff = 1 - pnorm(z_crit - abs(steiger_z)) + pnorm(-z_crit - abs(steiger_z))
   ) %>%
   dplyr::ungroup() %>%
-  dplyr::select(-z_crit)
+  dplyr::select(-z_crit, -steiger_result)
 
 # --- 6. Save and Display Results --------------------------------
 output_file <- here::here("output", "tables", "06_correlation_summary.csv")
 message("Saving correlation results to: ", output_file)
-dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(comparison_results, output_file, row.names = FALSE)
 
 # Display table to the console and viewer
