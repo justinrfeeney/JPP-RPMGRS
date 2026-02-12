@@ -29,23 +29,6 @@ load_packages <- function(pkgs) {
   invisible(TRUE)
 }
 
-# ---- Data Loading ----------------------------------------------------
-
-#' Load the cleaned dataset produced by Step 02.
-#'
-#' Reads the RDS file from the standard output location. Stops with a
-#' descriptive error when the file does not exist.
-#'
-#' @return A tibble of cleaned data.
-load_cleaned_data <- function() {
-  path <- here::here("output", "cleaned_data.rds")
-  if (!file.exists(path)) {
-    stop("Cleaned data not found at ", path,
-         ". Run Step 02 (R/02_load_clean.R) or the main pipeline (main.R) first.")
-  }
-  readRDS(path)
-}
-
 # ---- Warning Suppression -------------------------------------------
 
 #' Suppress known, non-critical warnings from model fitting routines.
@@ -235,7 +218,7 @@ fit_best_model <- function(formula, data, random_effects = NULL) {
         return(result %>% dplyr::mutate(model_engine = "glmmTMB", random_effect = re))
       }
 
-      if (length(strsplit(re, " \\+ ")[[1]]) == 1 && startsWith(re, "(1|") && endsWith(re, ")")) {
+      if (length(strsplit(re, " +", fixed = TRUE)[[1]]) == 1 && startsWith(re, "(1|") && endsWith(re, ")")) {
           grouping_var <- substring(re, 4, nchar(re) - 1)
           random_formula <- stats::as.formula(paste0("~ 1 | ", grouping_var))
 
@@ -358,109 +341,6 @@ summarize_power_sim <- function(power_object, outcome, effect, model_label, rand
     return(dplyr::bind_cols(base_tbl, extra_tbl))
   }
   base_tbl
-}
-
-# ---- Achieved-Power Utilities ------------------------------------
-
-#' Compute achieved power for a between-condition (RPM vs. GRS) comparison.
-#'
-#' Uses an independent-samples t-test power calculation via `pwr::pwr.t2n.test()`.
-#'
-#' @param df Data frame containing Condition and the outcome variable.
-#' @param outcome Character name of the outcome column.
-#' @return A single-row tibble with descriptive statistics and power.
-compute_condition_power <- function(df, outcome) {
-  outcome_sym <- rlang::sym(outcome)
-  df_clean <- df %>%
-    dplyr::select(Condition, value = !!outcome_sym) %>%
-    tidyr::drop_na()
-
-  rpm_values <- df_clean$value[df_clean$Condition == "RPM"]
-  grs_values <- df_clean$value[df_clean$Condition == "GRS"]
-
-  n_rpm <- length(rpm_values)
-  n_grs <- length(grs_values)
-
-  mean_rpm <- mean(rpm_values)
-  mean_grs <- mean(grs_values)
-  sd_rpm <- stats::sd(rpm_values)
-  sd_grs <- stats::sd(grs_values)
-
-  pooled_sd <- if ((n_rpm + n_grs) > 2) {
-    sqrt(((n_rpm - 1) * sd_rpm^2 + (n_grs - 1) * sd_grs^2) / (n_rpm + n_grs - 2))
-  } else {
-    NA_real_
-  }
-
-  diff_grs_rpm <- mean_grs - mean_rpm
-  cohen_d <- if (isTRUE(all.equal(pooled_sd, 0)) || is.na(pooled_sd)) NA_real_ else diff_grs_rpm / pooled_sd
-
-  power_est <- if (any(c(n_rpm, n_grs) < 2) || is.na(cohen_d)) {
-    NA_real_
-  } else {
-    pwr::pwr.t2n.test(n1 = n_rpm, n2 = n_grs, d = abs(cohen_d), sig.level = 0.05, alternative = "two.sided")$power
-  }
-
-  tibble::tibble(
-    outcome = outcome,
-    n_rpm = n_rpm,
-    n_grs = n_grs,
-    mean_rpm = mean_rpm,
-    mean_grs = mean_grs,
-    diff_grs_minus_rpm = diff_grs_rpm,
-    sd_rpm = sd_rpm,
-    sd_grs = sd_grs,
-    pooled_sd = pooled_sd,
-    cohens_d = cohen_d,
-    power_estimate = power_est
-  )
-}
-
-#' Compute achieved power for a one-sample test of a mean against zero.
-#'
-#' Used for discrepancy leniency analyses where the hypothesis is that the
-#' mean discrepancy differs from zero within a single condition.
-#'
-#' @param df Data frame (already filtered to a single condition).
-#' @param outcome Character name of the outcome column.
-#' @param condition Character label for the condition (for output labelling).
-#' @return A single-row tibble with descriptive statistics and power.
-compute_onesample_power <- function(df, outcome, condition) {
-  values <- stats::na.omit(df[[outcome]])
-  n <- length(values)
-  m <- mean(values)
-  s <- stats::sd(values)
-
-  d <- if (is.na(s) || s == 0 || n < 2) NA_real_ else m / s
-
-  power_est <- if (is.na(d) || n < 2) {
-    NA_real_
-  } else {
-    pwr::pwr.t.test(n = n, d = abs(d), sig.level = 0.05, type = "one.sample", alternative = "two.sided")$power
-  }
-
-  tibble::tibble(
-    outcome = outcome,
-    condition = condition,
-    n = n,
-    mean = m,
-    sd = s,
-    cohens_d = d,
-    power_estimate = power_est
-  )
-}
-
-#' Estimate two-tailed power to detect a correlation at alpha = 0.05.
-#'
-#' @param r_value Observed correlation coefficient.
-#' @param n_value Sample size contributing to the correlation.
-#' @param alpha Significance level; defaults to 0.05.
-#' @return Estimated statistical power, or NA_real_ when undefined.
-compute_correlation_power <- function(r_value, n_value, alpha = 0.05) {
-  if (is.na(r_value) || is.na(n_value) || n_value <= 3) {
-    return(NA_real_)
-  }
-  pwr::pwr.r.test(n = n_value, r = r_value, sig.level = alpha, alternative = "two.sided")$power
 }
 
 # ---- Reporting Utilities -----------------------------------------

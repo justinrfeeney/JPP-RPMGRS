@@ -12,6 +12,5 @@ venv/
 
 .Rhistory
 .RData
-.RData.bak
 .Rproj.user/
 *.Rproj

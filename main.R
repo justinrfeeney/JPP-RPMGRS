@@ -1,44 +1,51 @@
+# ================================================================= #
+# MASTER ANALYSIS SCRIPT
+# ================================================================= #
+#
+# This script runs the entire analysis pipeline for the project.
+# It sources each step in order, from data cleaning to final analysis.
+# To run the entire analysis, simply execute this file.
+#
+# ================================================================= #
+
+# --- 1. Preamble -------------------------------------------------
+
+# Globally set the CRAN mirror to avoid interactive prompts
 options(repos = c(CRAN = "https://cran.rstudio.com/"))
 
+# Set a global option to use the `here` package for path management# This makes the project portable and avoids `setwd()` issues.
 if (!requireNamespace("here", quietly = TRUE)) {
   install.packages("here", dependencies = TRUE)
 }
 library(here)
 
-source(here::here("R", "01_helpers.R"))
-
-load_packages(c(
-  "here", "dplyr", "tidyr", "tibble"
-))
-
+# Record start time
 start_time <- Sys.time()
 message("Starting analysis pipeline at: ", start_time)
 
+# Ensure output directories exist
 dir.create(here::here("output"), recursive = TRUE, showWarnings = FALSE)
 dir.create(here::here("output", "tables"), recursive = TRUE, showWarnings = FALSE)
 
-run_step <- function(label, path) {
-  message("\n--- ", label, " ---")
-  tryCatch(
-    {
-      source(here::here("R", path), echo = FALSE, max.deparse.length = Inf)
-      message(label, " completed successfully.")
-    },
-    error = function(e) {
-      message("ERROR in ", label, ": ", conditionMessage(e))
-      stop(e)
-    }
-  )
-}
+# --- 2. Execute Analysis Steps ----------------------------------- 
 
-run_step("STEP 02: Loading and Cleaning Data",          "02_load_clean.R")
-run_step("STEP 03: ICC Analysis",                       "03_icc_analysis.R")
-run_step("STEP 04: Confirmatory Factor Analysis (CFA)", "04_cfa_analysis.R")
-run_step("STEP 05: Leniency Analyses",                  "05_leniency.R")
-run_step("STEP 06: Correlation Analysis",               "06_correlations.R")
+# Each script prints messages about its progress and saves its output
+# to the `/output` directory.
 
-end_time   <- Sys.time()
-time_taken <- end_time - start_time
+message("\n--- STEP 02: Loading and Cleaning Data ---")
+source(here::here("R", "02_load_clean.R"))
+
+message("\n--- STEP 03: ICC Analysis ---")
+source(here::here("R", "03_icc_analysis.R"))
+
+message("\n--- STEP 04: Confirmatory Factor Analysis (CFA) ---")
+source(here::here("R", "04_cfa_analysis.R"))
+
+message("\n--- STEP 05: Leniency Analyses ---")
+source(here::here("R", "05_leniency.R"))
+
+message("\n--- STEP 06: Correlation Analysis ---")
+source(here::here("R", "06_correlations.R"))
 
 message("\n========================================================")
 message("Analysis pipeline complete!")

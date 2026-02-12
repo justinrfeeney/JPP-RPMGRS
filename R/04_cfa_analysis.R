@@ -7,7 +7,12 @@ source(here::here("R", "01_helpers.R"))
 load_packages(c("here", "dplyr", "tidyr", "lavaan", "knitr"))
 
 # --- 2. Load Cleaned Data ----------------------------------------
-my_data <- load_cleaned_data()
+cleaned_data_path <- here::here("output", "cleaned_data.rds")
+if (!file.exists(cleaned_data_path)) {
+  stop("Cleaned data not found at ", cleaned_data_path,
+       ". Run Step 02 (R/02_load_clean.R) or the main pipeline (main.R) first.")
+}
+my_data <- readRDS(cleaned_data_path)
 
 # --- 3. Define Model and Parameters ------------------------------
 
@@ -38,7 +43,8 @@ for (cond in c("RPM", "GRS")) {
   for (rater in names(variable_sets)) {
     vars <- variable_sets[[rater]]
     df_rater <- df_cond %>%
-      dplyr::select(dplyr::all_of(c(vars, "Group", "Experimenter")))
+      dplyr::select(dplyr::all_of(c(vars, "Group", "Experimenter"))) %>%
+      tidyr::drop_na()
 
     # Determine the appropriate cluster based on ICCs
     # We check if there is meaningful variance at the Group or Experimenter level
@@ -58,7 +64,7 @@ for (cond in c("RPM", "GRS")) {
 
     # Build the specific model string for this iteration
     model_string <- cfa_model_template
-    for (i in seq_along(vars)) {
+    for (i in 1:length(vars)) {
       model_string <- gsub(paste0("dim", i), vars[i], model_string)
     }
 
@@ -104,9 +110,11 @@ fit_output_file <- here::here("output", "tables", "04_cfa_fit_summary.csv")
 loadings_output_file <- here::here("output", "tables", "04_cfa_loadings_summary.csv")
 
 message("Saving CFA fit indices to: ", fit_output_file)
+dir.create(dirname(fit_output_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(cfa_fit_summary, fit_output_file, row.names = FALSE)
 
 message("Saving CFA loadings to: ", loadings_output_file)
+dir.create(dirname(loadings_output_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(cfa_loadings_summary, loadings_output_file, row.names = FALSE)
 
 # Display tables to the console and viewer

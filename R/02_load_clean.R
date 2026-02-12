@@ -2,68 +2,50 @@
 # STEP 02: LOAD, CLEAN, AND PREPARE DATA
 # ================================================================= #
 
+# --- 1. Load Packages --------------------------------------------
+# Source the helper script to get the package loader function
 source(here::here("R", "01_helpers.R"))
-load_packages(c("here", "haven", "dplyr", "tidyr", "tibble"))
+load_packages(c("here", "haven", "dplyr", "tidyr"))
 
+# --- 2. Define File Paths ----------------------------------------
+# Using here() makes file paths robust to where the project is located
 raw_data_path <- here::here("data", "data.sav")
-output_path   <- here::here("output", "cleaned_data.rds")
+output_path <- here::here("output", "cleaned_data.rds")
 
-message("Step 02: starting load and clean.")
-message("Raw data path: ", raw_data_path)
+# --- 3. Load Raw Data --------------------------------------------
+message("Loading raw data from: ", raw_data_path)
+my_data_raw <- haven::read_sav(raw_data_path)
 
-if (!file.exists(raw_data_path)) {
-  stop("Raw data file not found at: ", raw_data_path)
-}
-
-read_spss_safe <- function(path) {
-  out <- tryCatch(
-    {
-      message("Reading SPSS file with haven::read_sav() ...")
-      haven::read_sav(path)
-    },
-    error = function(e1) {
-      message("haven::read_sav() failed: ", conditionMessage(e1))
-      message("Falling back to foreign::read.spss() ...")
-      load_packages("foreign")
-      tryCatch(
-        {
-          foreign::read.spss(path, to.data.frame = TRUE, use.value.labels = TRUE)
-        },
-        error = function(e2) {
-          stop(
-            "Failed to read SPSS file with both haven::read_sav() and foreign::read.spss(). ",
-            "First error: ", conditionMessage(e1), " | Second error: ", conditionMessage(e2)
-          )
-        }
-      )
-    }
-  )
-  tibble::as_tibble(out)
-}
-
-my_data_raw <- read_spss_safe(raw_data_path)
-
-message("Raw data loaded. Rows: ", nrow(my_data_raw), " | Cols: ", ncol(my_data_raw))
-
+# --- 4. Clean and Prepare Data -----------------------------------
+message("Cleaning and preparing data...")
 my_data_clean <- my_data_raw %>%
+  # Rename variables for clarity and consistency
   dplyr::rename(Group = GroupID) %>%
+  # Mutate variables into the correct format
   dplyr::mutate(
-    Group        = factor(Group),
+    # Convert clustering variables to factors
+    Group = factor(Group),
     Experimenter = factor(Experimenter),
-    Condition    = factor(Condition, levels = c(1, 2), labels = c("RPM", "GRS"))
-  ) %>%
-  dplyr::mutate(
-    Condition    = stats::relevel(Condition, ref = "RPM"),
-    Self_Mean    = rowMeans(dplyr::pick(Self_Organization, Self_Physical, Self_Visual, Self_Vocal),  na.rm = TRUE),
-    Peer_Mean    = rowMeans(dplyr::pick(Peer_Organization, Peer_Physical, Peer_Visual, Peer_Vocal),  na.rm = TRUE),
-    Super_Mean   = rowMeans(dplyr::pick(Super_Organization, Super_Physical, Super_Visual, Super_Vocal), na.rm = TRUE),
+
+    # Convert Condition to a factor with meaningful labels and a specific reference level
+    Condition = factor(Condition, levels = c(1, 2), labels = c("RPM", "GRS")),
+    Condition = relevel(Condition, ref = "RPM"),
+
+    # --- Create Composite Scores (Means) ---
+    # Calculate mean scores for each rater type across all dimensions
+    Self_Mean = rowMeans(dplyr::across(dplyr::starts_with("Self_")), na.rm = TRUE),
+    Peer_Mean = rowMeans(dplyr::across(dplyr::starts_with("Peer_")), na.rm = TRUE),
+    Super_Mean = rowMeans(dplyr::across(dplyr::starts_with("Super_")), na.rm = TRUE),
+
+    # --- Create Discrepancy Scores ---
+    # Calculate the difference between self/peer ratings and supervisor ratings
     Peer_Discrep = Peer_Mean - Super_Mean,
     Self_Discrep = Self_Mean - Super_Mean
   )
 
-message("Cleaning complete. Rows: ", nrow(my_data_clean), " | Cols: ", ncol(my_data_clean))
-
+# --- 5. Save Cleaned Data ----------------------------------------
+message("Saving cleaned data to: ", output_path)
 dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
 saveRDS(my_data_clean, file = output_path)
 
-message("Step 02 complete. Cleaned data saved to: ", output_path)
+message("Step 02: Data loading and cleaning complete. ", nrow(my_data_clean), " rows processed.")
